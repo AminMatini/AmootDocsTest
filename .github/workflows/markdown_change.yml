@@ -1,0 +1,44 @@
+name: Notify Server on Markdown Change
+
+on:
+  push:
+    paths:
+      - '**/*.md'  # Only trigger this workflow on Markdown file changes
+
+jobs:
+  notify_server:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Get modified files
+      id: get_files
+      run: |
+        # Fetch the list of changed files
+        git diff --name-only HEAD^ HEAD > modified_files.txt
+        cat modified_files.txt
+        echo "MODIFIED_FILES=$(cat modified_files.txt)" >> $GITHUB_ENV
+
+    - name: Send URLs to server
+      if: ${{ env.MODIFIED_FILES }}
+      run: |
+        # Your server URL
+        SERVER_URL="https://localhost:7256/api/Git/Index"
+
+        # Get the repository URL and branch
+        REPO_URL="https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/"
+
+        # Read modified files
+        while IFS= read -r FILE; do
+          # Construct file URL
+          FILE_URL="${REPO_URL}${FILE}"
+
+          # Send the URL to your server
+          curl -X POST "$SERVER_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"fileUrl\": \"$FILE_URL\"}"
+
+          echo "Sent URL to server: $FILE_URL"
+        done < modified_files.txt
