@@ -3,18 +3,13 @@ name: Notify Server on Markdown Change
 on:
   push:
     paths:
-      - '**/*.md'  # Only trigger this workflow on Markdown file changes
+      - '**/*.md'  # Trigger this workflow on Markdown file changes
 
 jobs:
   notify_server:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # Fetch all history to ensure git diff works properly
-
     - name: Notify Server of Markdown Changes
       run: |
         # Your server URL
@@ -23,44 +18,10 @@ jobs:
         # Get the repository URL and branch
         REPO_URL="https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/"
         
-        # Debug information
-        echo "Repository URL: $REPO_URL"
-        echo "Server URL: $SERVER_URL"
+        # Send the API call
+        response=$(curl -X POST "$SERVER_URL" \
+          -H "Content-Type: application/json" \
+          -d "{\"fileUrl\": \"Markdown files updated in repository.\"}" \
+          -w "%{http_code}" -o /dev/null -s)
         
-        # Fetch all commits to ensure the diff command works
-        echo "Fetching all commits..."
-        git fetch --all || { echo 'Git fetch failed'; exit 1; }
-        
-        # Ensure the base branch exists and is updated
-        BASE_BRANCH="main"  # Change this to your base branch if necessary
-        echo "Comparing with base branch: $BASE_BRANCH"
-        git checkout $BASE_BRANCH || { echo 'Git checkout failed'; exit 1; }
-        git pull || { echo 'Git pull failed'; exit 1; }
-        
-        # Get the list of modified Markdown files between HEAD and the base branch
-        MODIFIED_FILES=$(git diff --name-only origin/${BASE_BRANCH} HEAD | grep '.md') || { echo 'Git diff failed'; exit 1; }
-        
-        # Check if MODIFIED_FILES is empty
-        if [ -z "$MODIFIED_FILES" ]; then
-          echo "No Markdown files modified."
-          exit 0
-        fi
-        
-        # Debugging output for modified files
-        echo "Modified files:"
-        echo "$MODIFIED_FILES"
-        
-        # Read modified files and send URLs
-        for FILE in $MODIFIED_FILES; do
-          # Construct file URL
-          FILE_URL="${REPO_URL}${FILE}"
-          echo "Constructed file URL: $FILE_URL"
-          
-          # Send the URL to your server
-          response=$(curl -X POST "$SERVER_URL" \
-            -H "Content-Type: application/json" \
-            -d "{\"fileUrl\": \"$FILE_URL\"}" \
-            -w "%{http_code}" -o /dev/null -s)
-          
-          echo "Sent URL to server: $FILE_URL with response code: $response"
-        done
+        echo "API call response code: $response"
