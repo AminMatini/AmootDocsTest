@@ -12,6 +12,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Fetch all history to ensure git diff works properly
 
     - name: Notify Server of Markdown Changes
       run: |
@@ -29,9 +31,13 @@ jobs:
         echo "Fetching all commits..."
         git fetch --all || { echo 'Git fetch failed'; exit 1; }
         
-        # Get the list of modified Markdown files between HEAD and the base branch
+        # Ensure the base branch exists and is updated
         BASE_BRANCH="main"  # Change this to your base branch if necessary
         echo "Comparing with base branch: $BASE_BRANCH"
+        git checkout $BASE_BRANCH || { echo 'Git checkout failed'; exit 1; }
+        git pull || { echo 'Git pull failed'; exit 1; }
+        
+        # Get the list of modified Markdown files between HEAD and the base branch
         MODIFIED_FILES=$(git diff --name-only origin/${BASE_BRANCH} HEAD | grep '.md') || { echo 'Git diff failed'; exit 1; }
         
         # Check if MODIFIED_FILES is empty
