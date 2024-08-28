@@ -10,19 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Get modified files
-      id: get_files
-      run: |
-        # Fetch the list of changed files
-        git diff --name-only HEAD^ HEAD > modified_files.txt
-        cat modified_files.txt
-        echo "MODIFIED_FILES=$(cat modified_files.txt)" >> $GITHUB_ENV
-
-    - name: Send URLs to server
-      if: ${{ env.MODIFIED_FILES }}
+    - name: Notify Server of Markdown Changes
       run: |
         # Your server URL
         SERVER_URL="https://localhost:7256/api/Git/Index"
@@ -30,8 +18,11 @@ jobs:
         # Get the repository URL and branch
         REPO_URL="https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/"
 
+        # Get the list of modified Markdown files
+        MODIFIED_FILES=$(git diff --name-only HEAD^ HEAD | grep '.md')
+
         # Read modified files
-        while IFS= read -r FILE; do
+        for FILE in $MODIFIED_FILES; do
           # Construct file URL
           FILE_URL="${REPO_URL}${FILE}"
 
@@ -41,4 +32,4 @@ jobs:
             -d "{\"fileUrl\": \"$FILE_URL\"}"
 
           echo "Sent URL to server: $FILE_URL"
-        done < modified_files.txt
+        done
