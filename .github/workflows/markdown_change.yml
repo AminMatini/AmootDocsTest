@@ -13,7 +13,7 @@ jobs:
     - name: Notify Server of Markdown Changes
       run: |
         # Your server URL
-        SERVER_URL="https://localhost:7256/api/Git/Index"
+        SERVER_URL="http://localhost:5279/api/Git/Index"
         
         # Get the repository URL and branch
         REPO_URL="https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/"
